@@ -1,0 +1,205 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+.app { padding: 1.5rem 0; max-width: 720px; }
+h1 { font-size: 22px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 4px; }
+.sub { font-size: 14px; color: var(--color-text-secondary); margin-bottom: 1.5rem; }
+.section { margin-bottom: 1.25rem; }
+.section label { font-size: 13px; color: var(--color-text-secondary); display: block; margin-bottom: 6px; }
+.player-input-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.player-input-row input { flex: 1; }
+.player-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.tag { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: 20px; padding: 4px 10px; font-size: 13px; color: var(--color-text-primary); display: flex; align-items: center; gap: 6px; }
+.tag button { background: none; border: none; cursor: pointer; color: var(--color-text-secondary); font-size: 14px; padding: 0; line-height: 1; }
+.tag button:hover { color: var(--color-text-primary); }
+.options-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.option-group { flex: 1; min-width: 120px; }
+.option-group label { font-size: 13px; color: var(--color-text-secondary); display: block; margin-bottom: 6px; }
+select { width: 100%; }
+.checkbox-list { display: flex; flex-direction: column; gap: 6px; }
+.checkbox-list label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--color-text-primary); cursor: pointer; }
+.checkbox-list input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; }
+.btn-primary { background: var(--color-text-primary); color: var(--color-background-primary); border: none; border-radius: var(--border-radius-md); padding: 10px 24px; font-size: 15px; font-weight: 500; cursor: pointer; width: 100%; margin-top: 0.5rem; }
+.btn-primary:hover { opacity: 0.85; }
+.btn-primary:disabled { opacity: 0.35; cursor: default; }
+.result-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1.25rem; margin-top: 1.5rem; }
+.result-header { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 1rem; border-bottom: 0.5px solid var(--color-border-tertiary); padding-bottom: 0.75rem; }
+.stage-badge { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 13px; font-weight: 500; margin-left: 6px; }
+.stage-early { background: #EAF3DE; color: #27500A; }
+.stage-mid { background: #FAEEDA; color: #633806; }
+.stage-late { background: #FCEBEB; color: #791F1F; }
+.teams-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 12px; }
+.team-card { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 1rem; }
+.team-title { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.04em; }
+.faction-name { font-size: 17px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 8px; }
+.faction-flag { font-size: 22px; margin-bottom: 6px; }
+.player-list { list-style: none; }
+.player-list li { font-size: 14px; color: var(--color-text-secondary); padding: 2px 0; }
+.player-list li::before { content: "— "; }
+.error { color: var(--color-text-danger); font-size: 13px; margin-top: 4px; }
+.divider { border: none; border-top: 0.5px solid var(--color-border-tertiary); margin: 1rem 0; }
+</style>
+
+<div class="app">
+  <h1>Gates of Hell — session randomizer</h1>
+  <p class="sub">Add players, configure options, and generate your match setup.</p>
+
+  <div class="section">
+    <label>Players</label>
+    <div class="player-input-row">
+      <input type="text" id="playerInput" placeholder="Enter player name…" />
+      <button onclick="addPlayer()" style="white-space:nowrap;">Add</button>
+    </div>
+    <div class="player-tags" id="playerTags"></div>
+    <div class="error" id="playerError"></div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="options-row">
+    <div class="option-group">
+      <label>Number of teams</label>
+      <select id="numTeams">
+        <option value="2">2 teams</option>
+        <option value="3">3 teams</option>
+        <option value="4">4 teams</option>
+      </select>
+    </div>
+    <div class="option-group">
+      <label>War stage</label>
+      <select id="stageMode">
+        <option value="random">Random</option>
+        <option value="early">Early War</option>
+        <option value="mid">Mid War</option>
+        <option value="late">Late War</option>
+      </select>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="section">
+    <label>Factions to include</label>
+    <div class="checkbox-list" id="factionList"></div>
+  </div>
+
+  <button class="btn-primary" id="generateBtn" onclick="generate()">Generate match</button>
+
+  <div id="result"></div>
+</div>
+
+<script>
+const FACTIONS = [
+  { name: "Germany", flag: "🇩🇪", dlc: false },
+  { name: "Soviet Union", flag: "🇷🇺", dlc: false },
+  { name: "United States", flag: "🇺🇸", dlc: false },
+  { name: "United Kingdom", flag: "🇬🇧", dlc: false },
+  { name: "Finland", flag: "🇫🇮", dlc: false },
+  { name: "Hungary", flag: "🇭🇺", dlc: true },
+  { name: "Romania", flag: "🇷🇴", dlc: true },
+  { name: "Italy", flag: "🇮🇹", dlc: true },
+  { name: "France", flag: "🇫🇷", dlc: true },
+  { name: "Poland", flag: "🇵🇱", dlc: true },
+];
+
+const STAGES = ["Early War", "Mid War", "Late War"];
+let players = [];
+
+function buildFactionList() {
+  const el = document.getElementById("factionList");
+  el.innerHTML = FACTIONS.map((f, i) => `
+    <label>
+      <input type="checkbox" id="f${i}" ${!f.dlc ? "checked" : ""}>
+      <span>${f.flag} ${f.name}${f.dlc ? ' <span style="font-size:11px;color:var(--color-text-secondary)">(DLC)</span>' : ""}</span>
+    </label>
+  `).join("");
+}
+
+function addPlayer() {
+  const inp = document.getElementById("playerInput");
+  const err = document.getElementById("playerError");
+  const name = inp.value.trim();
+  if (!name) return;
+  if (players.includes(name)) { err.textContent = "Player already added."; return; }
+  err.textContent = "";
+  players.push(name);
+  inp.value = "";
+  renderTags();
+}
+
+document.getElementById("playerInput").addEventListener("keydown", e => { if (e.key === "Enter") addPlayer(); });
+
+function removePlayer(name) {
+  players = players.filter(p => p !== name);
+  renderTags();
+}
+
+function renderTags() {
+  const el = document.getElementById("playerTags");
+  el.innerHTML = players.map(p => `
+    <div class="tag">${p} <button onclick="removePlayer('${p.replace(/'/g,"\\'")}')">✕</button></div>
+  `).join("");
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function generate() {
+  const numTeams = parseInt(document.getElementById("numTeams").value);
+  const stageMode = document.getElementById("stageMode").value;
+  const err = document.getElementById("playerError");
+
+  if (players.length < numTeams) {
+    err.textContent = `Need at least ${numTeams} players for ${numTeams} teams.`;
+    return;
+  }
+  err.textContent = "";
+
+  const selected = FACTIONS.filter((f, i) => document.getElementById("f" + i).checked);
+  if (selected.length < numTeams) {
+    err.textContent = `Select at least ${numTeams} factions to assign one per team.`;
+    return;
+  }
+
+  const shuffledPlayers = shuffle(players);
+  const shuffledFactions = shuffle(selected).slice(0, numTeams);
+
+  const teams = Array.from({ length: numTeams }, (_, i) => ({ name: `Team ${i + 1}`, faction: shuffledFactions[i], players: [] }));
+  shuffledPlayers.forEach((p, i) => teams[i % numTeams].players.push(p));
+
+  let stage;
+  if (stageMode === "random") stage = STAGES[Math.floor(Math.random() * STAGES.length)];
+  else if (stageMode === "early") stage = "Early War";
+  else if (stageMode === "mid") stage = "Mid War";
+  else stage = "Late War";
+
+  const stageClass = stage === "Early War" ? "stage-early" : stage === "Mid War" ? "stage-mid" : "stage-late";
+
+  const teamsHtml = teams.map(t => `
+    <div class="team-card">
+      <div class="team-title">${t.name}</div>
+      <div class="faction-flag">${t.faction.flag}</div>
+      <div class="faction-name">${t.faction.name}</div>
+      <ul class="player-list">${t.players.map(p => `<li>${p}</li>`).join("")}</ul>
+    </div>
+  `).join("");
+
+  document.getElementById("result").innerHTML = `
+    <div class="result-card">
+      <div class="result-header">
+        War stage: <span class="stage-badge ${stageClass}">${stage}</span>
+      </div>
+      <div class="teams-grid">${teamsHtml}</div>
+    </div>
+  `;
+}
+
+buildFactionList();
+</script>
